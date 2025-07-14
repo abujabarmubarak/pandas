@@ -48,6 +48,11 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+# ✅ ADD HERE, OUTSIDE TYPE_CHECKING
+from pandas import (
+    DataFrame,
+    Series,
+)
 from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import (
@@ -119,10 +124,12 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    # ❌ REMOVE THESE
+    # from pandas import (
+    #     DataFrame,
+    #     Series,
+    # )
+
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
 
@@ -1230,9 +1237,13 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
-            :: self.step
-        ]
+        result = self._apply_columnwise(homogeneous_func, name, numeric_only)
+        if self.step is not None and self.step > 1:
+            if isinstance(result, Series):
+                result = result.iloc[:: self.step]
+            elif isinstance(result, DataFrame):
+                result = result.iloc[:: self.step, :]
+        return result
 
     @doc(
         _shared_docs["aggregate"],
@@ -3154,3 +3165,4 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
                     f"Each group within {on} must be monotonic. "
                     f"Sort the values in {on} first."
                 )
+
